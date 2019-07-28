@@ -1,19 +1,3 @@
-import pygame, os
-import time
-import random
-
-# Position game window in center of screen
-os.environ['SDL_VIDEO_CENTERED'] = '1'
-
-pygame.init()
-
-plane_image = pygame.image.load("plane.png")
-
-window = pygame.display.set_mode((1150, 700))
-pygame.display.set_caption("Evasive Maneuvers")
-pygame.display.set_icon(plane_image)
-
-
 class Player:
     def __init__(self):
         self.vertical_displacement = 100
