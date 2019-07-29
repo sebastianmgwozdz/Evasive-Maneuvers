@@ -1,4 +1,4 @@
-import pygame, os
+import pygame, os, sys
 import time
 import random
 
@@ -12,6 +12,8 @@ window = pygame.display.set_mode((1150, 700))
 plane_image = pygame.image.load("plane.png").convert_alpha()
 background_image = pygame.image.load("background.png").convert_alpha()
 
+font = pygame.font.Font('freesansbold.ttf', 32)
+
 pygame.display.set_caption("Evasive Maneuvers")
 pygame.display.set_icon(plane_image)
 
@@ -20,22 +22,35 @@ class Player:
     def __init__(self):
         self.vertical_displacement = 100
         self.vertical_velocity = 0
+        self.horizontal_distance_moved = 0
+        self.points = 0
 
     def update_vertical_displacement(self):
         self.vertical_displacement += self.vertical_velocity
 
-    def update_height(self):
+    def update_position(self):
         if self.vertical_velocity > 13:
             self.vertical_velocity = 13
         elif self.vertical_velocity < -13:
             self.vertical_velocity = -13
+
         self.update_vertical_displacement()
+
+        left_obstacle = obstacles[0]
+        if left_obstacle.x_position < -85:
+            obstacles.remove(left_obstacle)
+            self.points += 1
+
         for obstacle in obstacles:
-            if obstacle.x_position < -50:
-                obstacles.remove(obstacle)
-            else:
-                obstacle.scroll()
+            obstacle.scroll()
+
         window.blit(plane_image, (0, play.vertical_displacement))
+
+        self.horizontal_distance_moved += 6
+
+    def collide(self, obstacle):
+        return obstacle.x_position < 85 and (self.vertical_displacement <= obstacle.opening_top or
+                                             self.vertical_displacement + 92 > obstacle.opening_bottom)
 
 
 class Obstacle:
@@ -57,45 +72,89 @@ def draw_background():
     window.blit(background_image, (0, 0))
 
 
-running = True
-green = (0, 255, 0)
-white = (255, 255, 255)
-play = Player()
-obstacles = []
-horizontal_distance_moved = 0
+def display_text(font, string, x, y):
+    text = font.render(string, True, (255, 255, 255))
+    text_rect = text.get_rect()
+    text_rect.center = (x, y)
+    window.blit(text, text_rect)
 
-draw_background()
-window.blit(plane_image, (0, play.vertical_displacement))
-pygame.display.update()
 
-time.sleep(1.5)
-
-while running:
-    pygame.time.Clock().tick(120)
+def display_game_over_screen(points):
     draw_background()
-    if horizontal_distance_moved % 600 == 0:
-        ob = Obstacle()
-        obstacles.append(ob)
+    display_text(font, "Final Score: " + str(points), 575, 150)
+    pygame.display.update()
+    time.sleep(5)
 
-    events = pygame.event.get()
-    keys = pygame.key.get_pressed()  # checking pressed keys
 
-    for event in events:
-        if event.type == pygame.QUIT:
-            running = False
-
-    if keys[pygame.K_SPACE]:
-        play.vertical_velocity -= 0.70
-    else:
-        play.vertical_velocity += 0.70
-
-    play.update_height()
-
-    if play.vertical_displacement > 615:
-        running = False
-
+def display_main_menu():
+    draw_background()
+    f = pygame.font.Font('freesansbold.ttf', 72)
+    display_text(f, "Evasive Maneuvers", 575, 50)
+    f = pygame.font.Font('freesansbold.ttf', 36)
+    display_text(f, "Press space to start game", 575, 175)
     pygame.display.update()
 
-    horizontal_distance_moved += 6
+def exit_game():
+    pygame.display.quit()
+    pygame.quit()
+    sys.exit()
 
-pygame.quit()
+
+while True:
+    display_main_menu()
+
+    begin_game = False
+    while not begin_game:
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.QUIT:
+                exit_game()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    begin_game = True
+
+    green = (0, 255, 0)
+    play = Player()
+    obstacles = []
+
+    draw_background()
+    display_text(font, "Points: 0", 100, 32)
+    window.blit(plane_image, (0, play.vertical_displacement))
+    pygame.display.update()
+
+    time.sleep(1)
+
+    while True:
+        pygame.time.Clock().tick(120)
+
+        draw_background()
+        display_text(font, "Points: " + str(play.points), 100, 32)
+
+        if play.horizontal_distance_moved % 600 == 0:
+            ob = Obstacle()
+            obstacles.append(ob)
+
+        events = pygame.event.get()
+        keys = pygame.key.get_pressed()
+
+        for event in events:
+            if event.type == pygame.QUIT:
+                exit_game()
+
+        if keys[pygame.K_SPACE]:
+            play.vertical_velocity -= 0.70
+        else:
+            play.vertical_velocity += 0.70
+
+        play.update_position()
+
+        pygame.display.update()
+
+        if play.collide(obstacles[0]):
+            display_game_over_screen(play.points)
+            exit_game()
+
+        if play.vertical_displacement > 615 or play.vertical_displacement <= 0:
+            display_game_over_screen(play.points)
+            exit_game()
+
