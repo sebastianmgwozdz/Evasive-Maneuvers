@@ -157,7 +157,6 @@ while True:
         pygame.time.Clock().tick(120)
 
         draw_background()
-        display_text(font, "Points: " + str(play.points), 100, 32)
 
         # Create a new obstacle every 600 pixels scrolled horizontally
         if play.horizontal_distance_moved % 600 == 0:
@@ -178,6 +177,8 @@ while True:
             play.vertical_velocity += 0.70
 
         play.update_position()
+
+        display_text(font, "Points: " + str(play.points), 100, 32)
 
         pygame.display.update()
 
